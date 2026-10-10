@@ -16,7 +16,7 @@ public class Product {
     @Column(nullable = false, length = 150)
     private String name;
 
-    @Column(length = 150)
+    @Column(length = 500)
     private String description;
 
     @Column(nullable = false, precision = 12, scale = 2)
@@ -32,5 +32,37 @@ public class Product {
         this.description = description;
         this.price = price;
         this.createdAt = OffsetDateTime.now();
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    public void setPrice(BigDecimal price) {
+        this.price = price;
+    }
+
+    public OffsetDateTime getCreatedAt() {
+        return createdAt;
     }
 }
