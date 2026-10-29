@@ -2,12 +2,14 @@ package com.gabriel.ordermanagement.controller;
 
 import com.gabriel.ordermanagement.dto.CreateOrderRequest;
 import com.gabriel.ordermanagement.dto.OrderResponse;
+import com.gabriel.ordermanagement.dto.PageResponse;
 import com.gabriel.ordermanagement.service.OrderService;
 
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -40,7 +42,17 @@ public class OrderController {
     }
 
     @GetMapping
-    public ResponseEntity<List<OrderResponse>> findAll() {
-        return ResponseEntity.ok(orderService.findAll());
+    public ResponseEntity<PageResponse<OrderResponse>> findAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        if (page < 0 || size < 1 || size > 100) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid pagination parameters"
+            );
+        }
+
+        return ResponseEntity.ok(orderService.findAll(page, size));
     }
 }

@@ -1,6 +1,7 @@
 package com.gabriel.ordermanagement.controller;
 
 import com.gabriel.ordermanagement.dto.OrderResponse;
+import com.gabriel.ordermanagement.dto.PageResponse;
 import com.gabriel.ordermanagement.enums.OrderStatus;
 import com.gabriel.ordermanagement.exception.GlobalExceptionHandler;
 import com.gabriel.ordermanagement.exception.OrderNotFoundException;
@@ -144,10 +145,32 @@ class OrderControllerTest {
 
     @Test
     void shouldFindAllOrdersAndReturnOk() throws Exception {
-        when(orderService.findAll()).thenReturn(List.of());
+        PageResponse<OrderResponse> pageResponse =
+                new PageResponse<>(
+                        List.of(),
+                        0,
+                        20,
+                        0,
+                        0,
+                        true,
+                        true
+                );
 
-        mockMvc.perform(get("/api/orders"))
+        when(orderService.findAll(0, 20))
+                .thenReturn(pageResponse);
+
+        mockMvc.perform(get("/api/orders")
+                        .param("page", "0")
+                        .param("size", "20"))
                 .andExpect(status().isOk())
-                .andExpect(content().json("[]"));
+                .andExpect(jsonPath("$.content").isEmpty())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.totalElements").value(0))
+                .andExpect(jsonPath("$.totalPages").value(0))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(true));
+
+        verify(orderService).findAll(0, 20);
     }
 }

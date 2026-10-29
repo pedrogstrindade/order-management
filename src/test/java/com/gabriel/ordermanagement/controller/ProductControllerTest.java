@@ -1,11 +1,14 @@
-
 package com.gabriel.ordermanagement.controller;
 
 import com.gabriel.ordermanagement.dto.CreateProductRequest;
+import com.gabriel.ordermanagement.dto.PageResponse;
 import com.gabriel.ordermanagement.dto.ProductResponse;
 import com.gabriel.ordermanagement.exception.ProductNotFoundException;
 import com.gabriel.ordermanagement.service.ProductService;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -14,22 +17,22 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.verify;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class ProductControllerTest {
 
+    private ProductService productService;
+    private ProductController productController;
+
+    @BeforeEach
+    void setUp() {
+        productService = mock(ProductService.class);
+        productController = new ProductController(productService);
+    }
+
     @Test
     void shouldReturnAllProducts() {
-        ProductService productService = mock(ProductService.class);
-        ProductController productController =
-                new ProductController(productService);
-
         ProductResponse product = new ProductResponse(
                 1L,
                 "Wireless Gaming Mouse",
@@ -37,57 +40,88 @@ class ProductControllerTest {
                 new BigDecimal("159.90"),
                 OffsetDateTime.of(
                         2026, 10, 11, 12, 0, 0, 0,
-                        ZoneOffset.UTC)
+                        ZoneOffset.UTC
+                )
         );
 
-        when(productService.findAll())
-                .thenReturn(List.of(product));
+        PageResponse<ProductResponse> pageResponse = new PageResponse<>(
+                List.of(product),
+                0,
+                20,
+                1,
+                1,
+                true,
+                true
+        );
 
-        ResponseEntity<List<ProductResponse>> response = productController.findAll();
+        when(productService.findAll(
+                0, 20, "id", Sort.Direction.DESC
+        )).thenReturn(pageResponse);
+
+        ResponseEntity<PageResponse<ProductResponse>> response =
+                productController.findAll(
+                        0, 20, "id", Sort.Direction.DESC
+                );
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(1, response.getBody().size());
-        assertEquals("Wireless Gaming Mouse",
-                response.getBody().getFirst().name());
+
+        assertEquals(1, response.getBody().content().size());
+        assertEquals(1, response.getBody().totalElements());
+        assertEquals(1, response.getBody().totalPages());
+        assertEquals(0, response.getBody().page());
+        assertEquals(20, response.getBody().size());
+
+        assertEquals(
+                "Wireless Gaming Mouse",
+                response.getBody().content().getFirst().name()
+        );
+
+        verify(productService).findAll(
+                0, 20, "id", Sort.Direction.DESC
+        );
     }
 
     @Test
     void shouldReturnProductById() {
-        ProductService productService = mock(ProductService.class);
-        ProductController productController = new ProductController(productService);
-
         ProductResponse product = new ProductResponse(
                 1L,
                 "Wireless Gaming Mouse",
                 "Wireless gaming mouse",
                 new BigDecimal("159.90"),
-                OffsetDateTime.of(2026, 10, 11, 12, 0, 0, 0, ZoneOffset.UTC)
+                OffsetDateTime.of(
+                        2026, 10, 11, 12, 0, 0, 0,
+                        ZoneOffset.UTC
+                )
         );
 
         when(productService.findById(1L)).thenReturn(product);
 
-        ResponseEntity<ProductResponse> response = productController.findById(1L);
+        ResponseEntity<ProductResponse> response =
+                productController.findById(1L);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(1L, response.getBody().id());
-        assertEquals("Wireless Gaming Mouse", response.getBody().name());
-    }
+        assertEquals(
+                "Wireless Gaming Mouse",
+                response.getBody().name()
+        );
 
+        verify(productService).findById(1L);
+    }
 
     @Test
     void shouldCreateProduct() {
-        ProductService productService = mock(ProductService.class);
-        ProductController productController =
-                new ProductController(productService);
-
         ProductResponse product = new ProductResponse(
                 1L,
                 "Wireless Gaming Mouse",
                 "Wireless gaming mouse",
                 new BigDecimal("159.90"),
-                OffsetDateTime.of(2026, 10, 11, 12, 0, 0, 0, ZoneOffset.UTC)
+                OffsetDateTime.of(
+                        2026, 10, 11, 12, 0, 0, 0,
+                        ZoneOffset.UTC
+                )
         );
 
         CreateProductRequest request = new CreateProductRequest(
@@ -107,16 +141,20 @@ class ProductControllerTest {
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("Wireless Gaming Mouse", response.getBody().name());
+        assertEquals(
+                "Wireless Gaming Mouse",
+                response.getBody().name()
+        );
 
-        verify(productService).create(request.name(), request.description(), request.price());
+        verify(productService).create(
+                request.name(),
+                request.description(),
+                request.price()
+        );
     }
 
     @Test
     void shouldUpdateProduct() {
-        ProductService productService = mock(ProductService.class);
-        ProductController productController = new ProductController(productService);
-
         CreateProductRequest request = new CreateProductRequest(
                 "Wireless Gaming Mouse Pro",
                 "Professional wireless gaming mouse",
@@ -128,28 +166,50 @@ class ProductControllerTest {
                 "Wireless Gaming Mouse Pro",
                 "Professional wireless gaming mouse",
                 new BigDecimal("199.90"),
-                OffsetDateTime.of(2026, 10, 11, 12, 0, 0, 0, ZoneOffset.UTC)
+                OffsetDateTime.of(
+                        2026, 10, 11, 12, 0, 0, 0,
+                        ZoneOffset.UTC
+                )
         );
 
-        when(productService.update(1L, request.name(), request.description(), request.price())).thenReturn(updatedProduct);
+        when(productService.update(
+                1L,
+                request.name(),
+                request.description(),
+                request.price()
+        )).thenReturn(updatedProduct);
 
-        ResponseEntity<ProductResponse> response = productController.update(1L, request);
+        ResponseEntity<ProductResponse> response =
+                productController.update(1L, request);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("Wireless Gaming Mouse Pro", response.getBody().name());
-        assertEquals(new BigDecimal("199.90"), response.getBody().price());
-        verify(productService).update(1L, request.name(), request.description(), request.price());
+        assertEquals(
+                "Wireless Gaming Mouse Pro",
+                response.getBody().name()
+        );
+        assertEquals(
+                new BigDecimal("199.90"),
+                response.getBody().price()
+        );
+
+        verify(productService).update(
+                1L,
+                request.name(),
+                request.description(),
+                request.price()
+        );
     }
 
     @Test
     void shouldDeleteProduct() {
-        ProductService productService = mock(ProductService.class);
-        ProductController productController = new ProductController(productService);
+        ResponseEntity<Void> response =
+                productController.delete(1L);
 
-        ResponseEntity<Void> response = productController.delete(1L);
-
-        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        assertEquals(
+                HttpStatus.NO_CONTENT,
+                response.getStatusCode()
+        );
         assertNull(response.getBody());
 
         verify(productService).delete(1L);
@@ -157,28 +217,48 @@ class ProductControllerTest {
 
     @Test
     void shouldReturnEmptyListWhenNoProductsExist() {
-        ProductService productService = mock(ProductService.class);
-        ProductController productController = new ProductController(productService);
+        PageResponse<ProductResponse> emptyPage = new PageResponse<>(
+                List.of(),
+                0,
+                20,
+                0,
+                0,
+                true,
+                true
+        );
 
-        when(productService.findAll()).thenReturn(List.of());
+        when(productService.findAll(
+                0, 20, "id", Sort.Direction.DESC
+        )).thenReturn(emptyPage);
 
-        ResponseEntity<List<ProductResponse>> response = productController.findAll();
+        ResponseEntity<PageResponse<ProductResponse>> response =
+                productController.findAll(
+                        0, 20, "id", Sort.Direction.DESC
+                );
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(0, response.getBody().size());
 
-        verify(productService).findAll();
+        assertTrue(response.getBody().content().isEmpty());
+        assertEquals(0, response.getBody().totalElements());
+        assertEquals(0, response.getBody().totalPages());
+        assertTrue(response.getBody().first());
+        assertTrue(response.getBody().last());
+
+        verify(productService).findAll(
+                0, 20, "id", Sort.Direction.DESC
+        );
     }
 
     @Test
     void shouldPropagateExceptionWhenProductDoesNotExist() {
-        ProductService productService = mock(ProductService.class);
-        ProductController productController = new ProductController(productService);
+        when(productService.findById(999L))
+                .thenThrow(new ProductNotFoundException(999L));
 
-        when(productService.findById(999L)).thenThrow(new ProductNotFoundException(999L));
-
-        assertThrows(ProductNotFoundException.class, () -> productController.findById(999L));
+        assertThrows(
+                ProductNotFoundException.class,
+                () -> productController.findById(999L)
+        );
 
         verify(productService).findById(999L);
     }
