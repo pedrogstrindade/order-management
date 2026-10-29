@@ -7,12 +7,15 @@ import com.gabriel.ordermanagement.entity.Order;
 import com.gabriel.ordermanagement.entity.OrderItem;
 import com.gabriel.ordermanagement.entity.Product;
 import com.gabriel.ordermanagement.enums.OrderStatus;
+import com.gabriel.ordermanagement.exception.OrderNotFoundException;
 import com.gabriel.ordermanagement.exception.ProductNotFoundException;
 import com.gabriel.ordermanagement.repository.OrderRepository;
 import com.gabriel.ordermanagement.repository.ProductRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 public class OrderService {
@@ -56,5 +59,21 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
 
         return OrderResponse.from(savedOrder);
+    }
+
+    @Transactional(readOnly = true)
+    public OrderResponse findById(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new OrderNotFoundException(id));
+
+        return OrderResponse.from(order);
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrderResponse> findAll() {
+        return orderRepository.findAll()
+                .stream()
+                .map(OrderResponse::from)
+                .toList();
     }
 }

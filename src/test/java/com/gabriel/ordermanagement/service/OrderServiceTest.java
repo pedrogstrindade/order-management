@@ -7,6 +7,7 @@ import com.gabriel.ordermanagement.entity.Order;
 import com.gabriel.ordermanagement.entity.OrderItem;
 import com.gabriel.ordermanagement.entity.Product;
 import com.gabriel.ordermanagement.enums.OrderStatus;
+import com.gabriel.ordermanagement.exception.OrderNotFoundException;
 import com.gabriel.ordermanagement.exception.ProductNotFoundException;
 import com.gabriel.ordermanagement.repository.OrderRepository;
 import com.gabriel.ordermanagement.repository.ProductRepository;
@@ -171,5 +172,44 @@ class OrderServiceTest {
         );
 
         assertSame(savedOrder, savedItem.getOrder());
+    }
+
+    @Test
+    void shouldFindOrderById() {
+        Order order = new Order(OrderStatus.PENDING);
+
+        when(orderRepository.findById(1L))
+                .thenReturn(Optional.of(order));
+
+        OrderResponse response = orderService.findById(1L);
+
+        assertEquals(OrderStatus.PENDING, response.status());
+        assertNotNull(response.createdAt());
+        verify(orderRepository).findById(1L);
+    }
+
+    @Test
+    void shouldThrowExceptionWhenOrderDoesNotExist() {
+        when(orderRepository.findById(999L))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                OrderNotFoundException.class,
+                () -> orderService.findById(999L)
+        );
+    }
+
+    @Test
+    void shouldFindAllOrders() {
+        Order firstOrder = new Order(OrderStatus.PENDING);
+        Order secondOrder = new Order(OrderStatus.PENDING);
+
+        when(orderRepository.findAll())
+                .thenReturn(List.of(firstOrder, secondOrder));
+
+        List<OrderResponse> responses = orderService.findAll();
+
+        assertEquals(2, responses.size());
+        verify(orderRepository).findAll();
     }
 }

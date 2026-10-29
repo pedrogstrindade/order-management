@@ -3,6 +3,7 @@ package com.gabriel.ordermanagement.controller;
 import com.gabriel.ordermanagement.dto.OrderResponse;
 import com.gabriel.ordermanagement.enums.OrderStatus;
 import com.gabriel.ordermanagement.exception.GlobalExceptionHandler;
+import com.gabriel.ordermanagement.exception.OrderNotFoundException;
 import com.gabriel.ordermanagement.service.OrderService;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +19,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -108,5 +110,44 @@ class OrderControllerTest {
                 ).exists());
 
         verifyNoInteractions(orderService);
+    }
+
+    @Test
+    void shouldFindOrderByIdAndReturnOk() throws Exception {
+        OrderResponse response = new OrderResponse(
+                1L,
+                OrderStatus.PENDING,
+                OffsetDateTime.now(),
+                List.of(),
+                BigDecimal.ZERO
+        );
+
+        when(orderService.findById(1L)).thenReturn(response);
+
+        mockMvc.perform(get("/api/orders/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.status").value("PENDING"));
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenOrderDoesNotExist()
+            throws Exception {
+
+        when(orderService.findById(999L))
+                .thenThrow(new OrderNotFoundException(999L));
+
+        mockMvc.perform(get("/api/orders/999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value("404"));
+    }
+
+    @Test
+    void shouldFindAllOrdersAndReturnOk() throws Exception {
+        when(orderService.findAll()).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/orders"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("[]"));
     }
 }
