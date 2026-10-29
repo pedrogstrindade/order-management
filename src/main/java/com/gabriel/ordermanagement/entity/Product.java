@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "products")
@@ -25,7 +27,11 @@ public class Product {
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
-    public Product() {}
+    @OneToMany(mappedBy = "product")
+    private List<OrderItem> orderItems = new ArrayList<>();
+
+    public Product() {
+    }
 
     public Product(String name, String description, BigDecimal price) {
         this.name = name;
@@ -64,5 +70,19 @@ public class Product {
 
     public OffsetDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public List<OrderItem> getOrderItems() {
+        return orderItems;
+    }
+
+    public void addOrderItem(OrderItem orderItem) {
+        orderItems.add(orderItem);
+        orderItem.setProduct(this);
+    }
+
+    public void removeOrderItem(OrderItem orderItem) {
+        orderItems.remove(orderItem);
+        orderItem.setProduct(null);
     }
 }
