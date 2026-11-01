@@ -19,6 +19,7 @@ spring:
 
 app:
   jwt:
+    issuer: https://auth.order-management.example
     private-key: ${JWT_PRIVATE_KEY}
     public-key: ${JWT_PUBLIC_KEY}
 

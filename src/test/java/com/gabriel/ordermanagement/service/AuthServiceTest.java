@@ -34,6 +34,9 @@ class AuthServiceTest {
     private JwtEncoder jwtEncoder;
     private AuthService authService;
 
+    private static final String ISSUER =
+            "https://auth.order-management.example";
+
     @BeforeEach
     void setUp() {
         userRepository = mock(UserRepository.class);
@@ -49,7 +52,8 @@ class AuthServiceTest {
                 userRepository,
                 passwordEncoder,
                 jwtEncoder,
-                clock
+                clock,
+                ISSUER
         );
     }
 
@@ -105,11 +109,13 @@ class AuthServiceTest {
 
     @Test
     void shouldLoginWithValidCredentials() {
-        User user = new User(
-                "user@example.com",
-                "stored-hash",
-                Role.USER
-        );
+        User user = mock(User.class);
+
+        when(user.getId()).thenReturn(1L);
+        when(user.getRole()).thenReturn(Role.USER);
+        when(user.getEmail()).thenReturn("user@example.com");
+        when(user.getPasswordHash()).thenReturn("stored-hash");
+        when(user.isEnabled()).thenReturn(true);
 
         when(userRepository.findByEmail("user@example.com"))
                 .thenReturn(Optional.of(user));
@@ -124,23 +130,11 @@ class AuthServiceTest {
                 Instant.parse("2026-11-01T12:00:00Z"),
                 Instant.parse("2026-11-01T12:15:00Z"),
                 Map.of("alg", "RS256"),
-                Map.of("sub", "1")
+                Map.of("sub", "1", "iss", ISSUER)
         );
 
         when(jwtEncoder.encode(any(JwtEncoderParameters.class)))
                 .thenReturn(jwt);
-
-        // A persisted entity normally has an assigned ID.
-        // This test uses a mocked entity to provide one.
-        User persistedUser = mock(User.class);
-        when(persistedUser.getId()).thenReturn(1L);
-        when(persistedUser.getRole()).thenReturn(Role.USER);
-        when(persistedUser.getEmail()).thenReturn("user@example.com");
-        when(persistedUser.getPasswordHash()).thenReturn("stored-hash");
-        when(persistedUser.isEnabled()).thenReturn(true);
-
-        when(userRepository.findByEmail("user@example.com"))
-                .thenReturn(Optional.of(persistedUser));
 
         AuthResponse response = authService.login(
                 new LoginRequest(
@@ -185,8 +179,10 @@ class AuthServiceTest {
         when(userRepository.findByEmail("user@example.com"))
                 .thenReturn(Optional.of(user));
 
-        when(passwordEncoder.matches("wrong-password", "stored-hash"))
-                .thenReturn(false);
+        when(passwordEncoder.matches(
+                "wrong-password",
+                "stored-hash"
+        )).thenReturn(false);
 
         assertThrows(
                 InvalidCredentialsException.class,
@@ -226,6 +222,7 @@ class AuthServiceTest {
     @Test
     void shouldReturnCurrentUser() {
         User user = mock(User.class);
+
         when(user.getId()).thenReturn(1L);
         when(user.getEmail()).thenReturn("user@example.com");
         when(user.getRole()).thenReturn(Role.USER);
@@ -239,7 +236,7 @@ class AuthServiceTest {
                 Instant.parse("2026-11-01T12:00:00Z"),
                 Instant.parse("2026-11-01T12:15:00Z"),
                 Map.of("alg", "RS256"),
-                Map.of("sub", "1")
+                Map.of("sub", "1", "iss", ISSUER)
         );
 
         UserResponse response = authService.findCurrentUser(jwt);

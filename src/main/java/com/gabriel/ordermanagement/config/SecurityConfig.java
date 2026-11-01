@@ -1,6 +1,7 @@
 package com.gabriel.ordermanagement.config;
 
 import com.gabriel.ordermanagement.dto.ApiErrorResponse;
+
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.context.annotation.Bean;
@@ -9,11 +10,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -51,6 +56,19 @@ public class SecurityConfig {
             ObjectMapper objectMapper
     ) throws Exception {
 
+        AuthenticationEntryPoint authenticationEntryPoint =
+                (request, response, exception) -> {
+                    new BearerTokenAuthenticationEntryPoint()
+                            .commence(request, response, exception);
+
+                    writeError(
+                            response,
+                            objectMapper,
+                            HttpStatus.UNAUTHORIZED,
+                            "Authentication is required"
+                    );
+                };
+
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
@@ -67,24 +85,18 @@ public class SecurityConfig {
                                 "/v3/api-docs",
                                 "/v3/api-docs/**"
                         ).permitAll()
-                        .requestMatchers("/api/users/me").authenticated()
+                        .requestMatchers("/api/users/me")
+                        .authenticated()
                         .anyRequest().permitAll()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
+                        .authenticationEntryPoint(authenticationEntryPoint)
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(
                                 jwtAuthenticationConverter
                         ))
                 )
                 .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint(
-                                (request, response, exception) ->
-                                        writeError(
-                                                response,
-                                                objectMapper,
-                                                HttpStatus.UNAUTHORIZED,
-                                                "Authentication is required"
-                                        )
-                        )
+                        .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(
                                 (request, response, exception) ->
                                         writeError(
@@ -108,6 +120,7 @@ public class SecurityConfig {
 
         response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
 
         objectMapper.writeValue(
                 response.getOutputStream(),

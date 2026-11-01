@@ -61,16 +61,17 @@ public class JwtConfig {
     }
 
     @Bean
-    JwtDecoder jwtDecoder(RSAPublicKey publicKey) {
+    JwtDecoder jwtDecoder(
+            RSAPublicKey publicKey,
+            @Value("${app.jwt.issuer}") String issuer
+    ) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder
                 .withPublicKey(publicKey)
                 .signatureAlgorithm(SignatureAlgorithm.RS256)
                 .build();
 
         decoder.setJwtValidator(
-                JwtValidators.createDefaultWithIssuer(
-                        "order-management"
-                )
+                JwtValidators.createDefaultWithIssuer(issuer)
         );
 
         return decoder;

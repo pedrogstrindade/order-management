@@ -10,6 +10,7 @@ import com.gabriel.ordermanagement.exception.EmailAlreadyRegisteredException;
 import com.gabriel.ordermanagement.exception.InvalidCredentialsException;
 import com.gabriel.ordermanagement.repository.UserRepository;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -35,17 +36,20 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtEncoder jwtEncoder;
     private final Clock clock;
+    private final String issuer;
 
     public AuthService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             JwtEncoder jwtEncoder,
-            Clock clock
+            Clock clock,
+            @Value("${app.jwt.issuer}") String issuer
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtEncoder = jwtEncoder;
         this.clock = clock;
+        this.issuer = issuer;
     }
 
     @Transactional
@@ -67,8 +71,6 @@ public class AuthService {
                     userRepository.saveAndFlush(user)
             );
         } catch (DataIntegrityViolationException exception) {
-            // The unique database constraint also protects
-            // against simultaneous registration requests.
             if (userRepository.existsByEmail(email)) {
                 throw new EmailAlreadyRegisteredException();
             }
@@ -96,7 +98,7 @@ public class AuthService {
         Instant expiresAt = issuedAt.plus(ACCESS_TOKEN_TTL);
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("order-management")
+                .issuer(issuer)
                 .subject(user.getId().toString())
                 .issuedAt(issuedAt)
                 .expiresAt(expiresAt)
