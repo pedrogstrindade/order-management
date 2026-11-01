@@ -29,13 +29,13 @@ public class Order {
     )
     private List<OrderItem> orderItems = new ArrayList<>();
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
     @Version
     @Column(name = "version", nullable = false)
     private Long version;
-
-    public Long getVersion() {
-        return version;
-    }
 
     public Order() {
     }
@@ -73,5 +73,17 @@ public class Order {
     public void removeOrderItem(OrderItem orderItem) {
         orderItems.remove(orderItem);
         orderItem.setOrder(null);
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public Long getVersion() {
+        return version;
     }
 }
