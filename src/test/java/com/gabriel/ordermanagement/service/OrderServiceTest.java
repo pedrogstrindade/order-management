@@ -8,6 +8,7 @@ import com.gabriel.ordermanagement.entity.Order;
 import com.gabriel.ordermanagement.entity.OrderItem;
 import com.gabriel.ordermanagement.entity.Product;
 import com.gabriel.ordermanagement.enums.OrderStatus;
+import com.gabriel.ordermanagement.exception.InvalidOrderStatusTransitionException;
 import com.gabriel.ordermanagement.exception.OrderNotFoundException;
 import com.gabriel.ordermanagement.exception.ProductNotFoundException;
 import com.gabriel.ordermanagement.repository.OrderRepository;
@@ -336,6 +337,44 @@ class OrderServiceTest {
                 List.of(3L, 2L, 1L)
         );
     }
+
+    @Test
+    void shouldUpdateOrderStatusSuccessfully() {
+        Order order = createOrderWithId(1L);
+
+        when(orderRepository.findWithItemsById(1L))
+                .thenReturn(Optional.of(order));
+
+        OrderResponse response = orderService.updateStatus(
+                1L, OrderStatus.CONFIRMED
+        );
+
+        assertEquals(OrderStatus.CONFIRMED, response.status());
+        assertEquals(OrderStatus.CONFIRMED, order.getOrderStatus());
+
+        verify(orderRepository).findWithItemsById(1L);
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    @Test
+    void shouldRejectInvalidStatusTransition() {
+        Order order = createOrderWithId(1L);
+        order.setOrderStatus(OrderStatus.COMPLETED);
+
+        when(orderRepository.findWithItemsById(1L))
+                .thenReturn(Optional.of(order));
+
+        assertThrows(
+                InvalidOrderStatusTransitionException.class,
+                () -> orderService.updateStatus(
+                        1L, OrderStatus.CANCELLED
+                )
+        );
+
+        assertEquals(OrderStatus.COMPLETED, order.getOrderStatus());
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
 
     private Order createOrderWithId(Long id) {
         Order order = new Order(OrderStatus.PENDING);

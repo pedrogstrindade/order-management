@@ -29,6 +29,14 @@ public class Order {
     )
     private List<OrderItem> orderItems = new ArrayList<>();
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
+    public Long getVersion() {
+        return version;
+    }
+
     public Order() {
     }
 

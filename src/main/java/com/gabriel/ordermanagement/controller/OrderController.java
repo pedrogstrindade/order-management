@@ -3,6 +3,7 @@ package com.gabriel.ordermanagement.controller;
 import com.gabriel.ordermanagement.dto.CreateOrderRequest;
 import com.gabriel.ordermanagement.dto.OrderResponse;
 import com.gabriel.ordermanagement.dto.PageResponse;
+import com.gabriel.ordermanagement.dto.UpdateOrderStatusRequest;
 import com.gabriel.ordermanagement.service.OrderService;
 
 import jakarta.validation.Valid;
@@ -54,5 +55,15 @@ public class OrderController {
         }
 
         return ResponseEntity.ok(orderService.findAll(page, size));
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<OrderResponse> updateStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateOrderStatusRequest request
+    ) {
+        return ResponseEntity.ok(
+                orderService.updateStatus(id, request.status())
+        );
     }
 }

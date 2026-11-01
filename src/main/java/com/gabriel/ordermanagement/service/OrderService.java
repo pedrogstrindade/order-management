@@ -8,6 +8,7 @@ import com.gabriel.ordermanagement.entity.Order;
 import com.gabriel.ordermanagement.entity.OrderItem;
 import com.gabriel.ordermanagement.entity.Product;
 import com.gabriel.ordermanagement.enums.OrderStatus;
+import com.gabriel.ordermanagement.exception.InvalidOrderStatusTransitionException;
 import com.gabriel.ordermanagement.exception.OrderNotFoundException;
 import com.gabriel.ordermanagement.exception.ProductNotFoundException;
 import com.gabriel.ordermanagement.repository.OrderRepository;
@@ -109,5 +110,24 @@ public class OrderService {
         );
 
         return PageResponse.from(result);
+    }
+
+    @Transactional
+    public OrderResponse updateStatus(Long id, OrderStatus targetStatus) {
+        Order order = orderRepository.findWithItemsById(id)
+                .orElseThrow(() -> new OrderNotFoundException(id));
+
+        OrderStatus currentStatus = order.getOrderStatus();
+
+        if (!currentStatus.canTransitionTo(targetStatus)) {
+            throw new InvalidOrderStatusTransitionException(
+                    currentStatus,
+                    targetStatus
+            );
+        }
+
+        order.setOrderStatus(targetStatus);
+
+        return OrderResponse.from(order);
     }
 }
